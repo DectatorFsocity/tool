@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF to Word Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    #drop-zone {
+      border: 2px dashed #007BFF;
+      padding: 40px;
+      background-color: #fff;
+      border-radius: 8px;
+      margin: auto;
+      width: 50%;
+      cursor: pointer;
+    }
+    #drop-zone.hover {
+      background-color: #e6f0ff;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    #message {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>PDF to Word Converter</h2>
+  <div id="drop-zone">Drag & drop your PDF here or click to upload</div>
+  <input type="file" id="file-input" accept=".pdf" />
+  <div id="message"></div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const message = document.getElementById('message');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('hover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('hover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('hover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileUpload(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        handleFileUpload(fileInput.files[0]);
+      }
+    });
+
+    function handleFileUpload(file) {
+      if (file.type !== 'application/pdf') {
+        message.textContent = 'Only PDF files are supported.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('pdf_file', file);
+
+      message.textContent = 'Uploading and converting...';
+
+      fetch('/convert', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Conversion failed');
+        return response.blob();
+      })
+      .then(blob => {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = file.name.replace('.pdf', '.docx');
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        message.textContent = 'Download started.';
+      })
+      .catch(err => {
+        console.error(err);
+        message.textContent = 'Error during conversion.';
+      });
+    }
+  </script>
+</body>
+</html>
