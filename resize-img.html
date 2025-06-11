@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Resizer for Web</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 30px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .options label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    input[type="file"],
+    input[type="number"],
+    select,
+    button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      margin-top: 15px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #downloadLink {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Web Image Resizer</h1>
+    
+    <input type="file" id="imageInput" accept="image/*">
+    
+    <div class="options">
+      <label>Max Width (px): <input type="number" id="maxWidth" value="800"></label>
+      <label>Max Height (px): <input type="number" id="maxHeight" value="600"></label>
+      <label>Max File Size (KB): <input type="number" id="maxSize" value="200"></label>
+      <label>Output Format: 
+        <select id="outputFormat">
+          <option value="image/jpeg">JPEG</option>
+          <option value="image/png">PNG</option>
+        </select>
+      </label>
+    </div>
+    
+    <button onclick="resizeImage()">Resize Image</button>
+    <a id="downloadLink" style="display:none;" download="resized-image.jpg">Download Resized Image</a>
+  </div>
+
+  <script>
+    function resizeImage() {
+      const fileInput = document.getElementById('imageInput');
+      const maxWidth = parseInt(document.getElementById('maxWidth').value);
+      const maxHeight = parseInt(document.getElementById('maxHeight').value);
+      const maxSizeKB = parseInt(document.getElementById('maxSize').value);
+      const outputFormat = document.getElementById('outputFormat').value;
+
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please upload an image first.");
+        return;
+      }
+
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        img.src = e.target.result;
+      };
+
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+        ratio = ratio > 1 ? 1 : ratio;
+
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Try compressing image iteratively
+        let quality = 0.95;
+        let output;
+        const tryCompress = () => {
+          output = canvas.toDataURL(outputFormat, quality);
+          const sizeKB = (output.length * (3/4)) / 1024;
+          if (sizeKB > maxSizeKB && quality > 0.1) {
+            quality -= 0.05;
+            tryCompress();
+          }
+        };
+
+        tryCompress();
+
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = output;
+        downloadLink.style.display = 'block';
+        downloadLink.innerText = "Download Resized Image";
+        downloadLink.download = "resized-image." + (outputFormat === "image/png" ? "png" : "jpg");
+      };
+
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
